@@ -98,20 +98,18 @@ struct ClusterTreeInitializer<ClusterTree> {
         for (auto i = 0; i < CT.nSons(); ++i) {
           shrinkToFit_impl(CT.sons(i), P);
           if (CT.sons(i).node().indices_.size()) {
-            bbmat.col(0).array() =
-                bbmat.col(0).array().min(CT.sons(i).node().bb_.col(0).array());
-            bbmat.col(1).array() =
-                bbmat.col(1).array().max(CT.sons(i).node().bb_.col(1).array());
+               bbmat.col(0) = bbmat.col(0).cwiseMin(CT.sons(i).node().bb_.col(0));
+              bbmat.col(1) = bbmat.col(1).cwiseMax(CT.sons(i).node().bb_.col(1));
+ 
           }
         }
       } else {
         for (auto i = 0; i < CT.node().indices_.size(); ++i) {
           // determine minimum
-          bbmat.col(0).array() =
-              P.col(CT.node().indices_[i]).array().min(bbmat.col(0).array());
-          // determine maximum
-          bbmat.col(1).array() =
-              P.col(CT.node().indices_[i]).array().max(bbmat.col(1).array());
+            bbmat.col(0) = P.col(CT.node().indices_[i]).cwiseMin(bbmat.col(0));  
+          // determine maximum   
+          bbmat.col(1) = P.col(CT.node().indices_[i]).cwiseMax(bbmat.col(1));
+        
         }
       }
     } else {
