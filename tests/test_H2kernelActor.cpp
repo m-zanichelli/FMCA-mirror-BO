@@ -17,45 +17,46 @@
 #include "../FMCA/src/util/Tictoc.h"
 
 #define NPTS 1000000
-#define DIM 2
-#define MPOLE_DEG 3
+#define DIM 3
+#define MPOLE_DEG 4
 
 using Interpolator = FMCA::TotalDegreeInterpolator;
 using Moments = FMCA::NystromMoments<Interpolator>;
 using MatrixEvaluator = FMCA::NystromEvaluator<Moments, FMCA::CovarianceKernel>;
+using MatrixEvaluatorUS =
+    FMCA::unsymmetricNystromEvaluator<Moments, FMCA::CovarianceKernel>;
 using H2ClusterTree = FMCA::H2ClusterTree<FMCA::ClusterTree>;
 using H2Matrix = FMCA::H2Matrix<H2ClusterTree>;
 
 int main() {
-  FMCA::Tictoc T;
   const FMCA::CovarianceKernel function("EXPONENTIAL", 1);
   const FMCA::Matrix P = FMCA::Matrix::Random(DIM, NPTS);
   const Moments mom(P, MPOLE_DEG);
-  H2ClusterTree ct(mom, 0, P);
-  FMCA::internal::compute_cluster_bases_impl::check_transfer_matrices(ct, mom);
-  const MatrixEvaluator mat_eval(mom, function);
-  for (FMCA::Scalar eta = 0.8; eta >= 0.2; eta *= 0.5) {
+  FMCA::Tictoc T;
+  for (FMCA::Scalar eta = 0.8; eta >= 0.1; eta *= 0.5) {
     std::cout << "eta:                          " << eta << std::endl;
     T.tic();
-    const H2Matrix hmat(ct, mat_eval, eta);
-    T.toc("elapsed time:                ");
-    hmat.statistics();
+    const FMCA::H2kernelActor<FMCA::CovarianceKernel, Moments, H2ClusterTree,
+                              MatrixEvaluatorUS>
+        hact(function, P, P, MPOLE_DEG, eta);
+    T.toc("init action: ");
     {
-      FMCA::Vector x(NPTS), y1(NPTS), y2(NPTS);
-      FMCA::Scalar err = 0;
-      FMCA::Scalar nrm = 0;
+      FMCA::Vector x(NPTS), y3(NPTS);
+      FMCA::Scalar err2 = 0;
+      FMCA::Scalar nrm2 = 0;
       for (auto i = 0; i < 10; ++i) {
         FMCA::Index index = rand() % P.cols();
         x.setZero();
         x(index) = 1;
-        FMCA::Vector col = function.eval(P, P.col(ct.indices()[index]));
-        y1 = col(ct.indices());
-        y2 = hmat * x;
-        err += (y1 - y2).squaredNorm();
-        nrm += y1.squaredNorm();
+        FMCA::Vector col = function.eval(P, P.col(index));
+        T.tic();
+        y3 = hact.action(x);
+        T.toc("performing action: ");
+        err2 += (y3 - col).squaredNorm();
+        nrm2 += col.squaredNorm();
       }
-      err = sqrt(err / nrm);
-      std::cout << "compression error:            " << err << std::endl;
+      err2 = sqrt(err2 / nrm2);
+      std::cout << "action error:                 " << err2 << std::endl;
       std::cout << std::string(60, '-') << std::endl;
     }
   }
