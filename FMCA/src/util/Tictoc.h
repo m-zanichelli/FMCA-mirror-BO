@@ -12,8 +12,8 @@
 #ifndef FMCA_UTIL_TICTOC__
 #define FMCA_UTIL_TICTOC__
 
-#ifndef FMCA_UTIL_TICTOC__
-#define FMCA_UTIL_TICTOC__
+//#ifndef FMCA_UTIL_TICTOC__
+//#define FMCA_UTIL_TICTOC__
 
 #include <iostream>
 #include <string>
